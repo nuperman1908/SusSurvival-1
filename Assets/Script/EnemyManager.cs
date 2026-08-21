@@ -12,11 +12,11 @@ public class EnemyManager : MonoBehaviour
 
     public float knockbackSpeed = 6f;
     public float knockbackDuration = 0.15f;
-    public float knockbackImmuneDuration = 0.5f; // after being knocked back, ignore further knockback for this long
-    public float hitLockDuration = 0.17f; // matches the Hit clip length (~0.083-0.167s across the 5 variants)
-    public float separationRadius = 0.6f; // roughly the enemy collider width; pushes overlapping enemies apart (Kinematic bodies don't get this from physics)
+    public float knockbackImmuneDuration = 0.5f; 
+    public float hitLockDuration = 0.17f; 
+    public float separationRadius = 0.6f;
     public float separationStrength = 8f;
-    public float repositionBoundsHalf = 10f; // matches the old "Area" trigger's 20x20 box; enemies straggling past this get moved to a Spawner point
+    public float repositionBoundsHalf = 10f;
     public float repositionJitter = 3f;
     public Spawner spawner;
 
@@ -119,8 +119,7 @@ public class EnemyManager : MonoBehaviour
         handle = copyJob.Schedule(transforms);
         handle.Complete();
 
-        // Spawner's points (skipping its own transform at index 0, same as Spawner.Spawn()) double
-        // as the recycle destinations for enemies that fall too far behind the player.
+
         Transform[] spPoints = spawner != null ? spawner.spawnPoint : null;
         int spCount = spPoints != null && spPoints.Length > 1 ? spPoints.Length - 1 : 0;
         var spawnPoints = new NativeArray<float2>(spCount, Allocator.TempJob);
@@ -208,8 +207,6 @@ public class EnemyManager : MonoBehaviour
 
             if (!isLive[index]) return;
 
-            // Enemy fell too far behind the player (used to be detected via an "Area" trigger +
-            // Reposition component); recycle it to one of the Spawner's own spawn points instead.
             float2 toPlayer = targetPos - pos;
             if (math.abs(toPlayer.x) > repositionBoundsHalf || math.abs(toPlayer.y) > repositionBoundsHalf)
             {
@@ -224,8 +221,6 @@ public class EnemyManager : MonoBehaviour
                 return;
             }
 
-            // Kinematic bodies never get pushed apart by the physics solver, so overlapping
-            // enemies need an explicit separation term here (boid-style), otherwise they stack.
             float2 separation = float2.zero;
             for (int i = 0; i < positions.Length; i++)
             {

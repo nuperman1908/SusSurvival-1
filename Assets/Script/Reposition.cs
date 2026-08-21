@@ -15,7 +15,7 @@ public class Reposition : MonoBehaviour
         Vector3 myPos = transform.position;
 
 
-        //rule map, enemy di chuyen len truoc camera
+        //rule map
         switch (transform.tag)
         {
             case "Ground":
