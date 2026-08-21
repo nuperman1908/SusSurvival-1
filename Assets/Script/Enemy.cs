@@ -1,8 +1,4 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using System.Threading.Tasks;
 
 public class Enemy : MonoBehaviour
 {
@@ -10,55 +6,51 @@ public class Enemy : MonoBehaviour
     public float health;
     public float maxHealth;
     public RuntimeAnimatorController[] animatorCon;
-    public Rigidbody2D target;
 
+    int slotIndex;
     bool isLive;
     Rigidbody2D rigid;
     SpriteRenderer spriteR;
+    SpriteRenderer shadowR;
     Animator anim;
-    WaitForFixedUpdate waitFix;
     Collider2D coll;
     private void Awake()
     {
         rigid = GetComponent<Rigidbody2D>();
         spriteR = GetComponent<SpriteRenderer>();
+        shadowR = transform.GetChild(0).GetComponent<SpriteRenderer>();
         anim = GetComponent<Animator>();
-        waitFix = new WaitForFixedUpdate();
         coll = GetComponent<Collider2D>();
     }
 
+    public void SetSlotIndex(int i) => slotIndex = i;
 
-    void FixedUpdate()
-    {
-        if (!GameManager.instance.isLive) return;
-
-        if (!isLive || anim.GetCurrentAnimatorStateInfo(0).IsName("Hit")) return;
-
-
-        //update huong di chuyen cua enemy ve phia target
-        Vector2 dirVec = target.position - rigid.position;
-        Vector2 nextVec = dirVec.normalized * speed * Time.fixedDeltaTime;
-        rigid.MovePosition(rigid.position + nextVec);
-        rigid.velocity = Vector2.zero;
-    }
     private void LateUpdate()
     {
         if (!GameManager.instance.isLive) return;
 
         //update huong nhin cua nhan vat enemy ve phia target
-        spriteR.flipX = target.position.x < rigid.position.x;
+        spriteR.flipX = EnemyManager.instance.GetFlipX(slotIndex);
+
+        //update thu tu ve theo truc Y (thap hon = truoc), tinh tuong doi so voi player
+        int order = DepthSort.ComputeOrder(transform.position.y, GameManager.instance.player.transform.position.y);
+        spriteR.sortingOrder = order;
+        shadowR.sortingOrder = order - 1;
     }
     private void OnEnable()
     {
         //spawn
-        target = GameManager.instance.player.GetComponent<Rigidbody2D>();
         isLive = true;
         coll.enabled = true;
         rigid.simulated = true;
-        spriteR.sortingOrder = 6;
         anim.SetBool("Dead", false);
         health = maxHealth;
-        
+        slotIndex = EnemyManager.instance.Register(this);
+    }
+    private void OnDisable()
+    {
+        // EnemyManager may already be torn down (scene unload / exiting Play Mode) before this fires.
+        if (EnemyManager.instance != null) EnemyManager.instance.Unregister(slotIndex);
     }
     public void Init(SpawnData data)
     {
@@ -67,6 +59,7 @@ public class Enemy : MonoBehaviour
         speed = data.speed;
         maxHealth = data.health;
         health = data.health;
+        EnemyManager.instance.SetSpeed(slotIndex, speed);
     }
     private void OnTriggerEnter2D(Collider2D collision)
     {
@@ -76,15 +69,16 @@ public class Enemy : MonoBehaviour
         }
         // khi cham vao bullet cua nguoi choi, enemy bi tru mau bang damage cua bullet
         health -= collision.GetComponent<Bullet>().damage;
-        StartCoroutine(KnockBack());
+        Vector2 knockDir = (Vector2)transform.position - (Vector2)GameManager.instance.player.transform.position;
+        EnemyManager.instance.ApplyHit(slotIndex, knockDir);
         if (health <= 0)
         {
             isLive = false;
+            EnemyManager.instance.SetLive(slotIndex, false);
 
             //khien khong the tuong tac voi object da chet
             coll.enabled = false;
             rigid.simulated = false;
-            spriteR.sortingOrder = 5;
             anim.SetBool("Dead", true);
             GameManager.instance.kill++;
             for (int i = 0; i < animatorCon.Length; i++)
@@ -124,14 +118,6 @@ public class Enemy : MonoBehaviour
             AudioManager.instance.PlaySfx(AudioManager.Sfx.Hit);
 
         }
-    }
-    IEnumerator KnockBack()
-    {
-
-        yield return waitFix;
-        Vector3 playerPos = GameManager.instance.player.transform.position;
-        Vector3 dirVec = transform.position - playerPos;
-        rigid.AddForce(dirVec.normalized * 3, ForceMode2D.Impulse);
     }
     private void Dead()
     {

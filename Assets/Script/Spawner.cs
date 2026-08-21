@@ -8,6 +8,7 @@ public class Spawner : MonoBehaviour
     public SpawnData[] spawnData;
     public float levelTime;
     public int enemyLevel;
+    public float jitterSpawner;
 
     float timer;
     int level;
@@ -60,7 +61,7 @@ public class Spawner : MonoBehaviour
     {
         //lenh spawn enemy 
         GameObject enemy = GameManager.instance.pool.Get(0);
-        enemy.transform.position = spawnPoint[Random.Range(1, spawnPoint.Length)].position;
+        enemy.transform.position = spawnPoint[Random.Range(1, spawnPoint.Length)].position + Random.insideUnitSphere * jitterSpawner;
         enemy.GetComponent<Enemy>().Init(spawnData[level]);
     }
 }

@@ -12,11 +12,13 @@ public class Player : MonoBehaviour
 
     Rigidbody2D rigid2D;
     SpriteRenderer spriteR;
+    SpriteRenderer shadowR;
     Animator anim;
     private void Awake()
     {
         rigid2D = GetComponent<Rigidbody2D>();
         spriteR = GetComponent<SpriteRenderer>();
+        shadowR = transform.GetChild(0).GetComponent<SpriteRenderer>();
         anim = GetComponent<Animator>();
         scanner = GetComponent<Scanner>();
     }
@@ -55,6 +57,11 @@ public class Player : MonoBehaviour
         {
             spriteR.flipX = inputVec.x < 0;
         }
+
+        //update thu tu ve theo truc Y, dung chung cong thuc voi Enemy de xen ke dung
+        int order = DepthSort.ComputeOrder(transform.position.y, transform.position.y);
+        spriteR.sortingOrder = order;
+        shadowR.sortingOrder = order - 1;
     }
     private void OnCollisionStay2D(Collision2D collision)
     {
